@@ -131,7 +131,9 @@ class LoaderCheckPoint:
                                                     torch_dtype=torch.bfloat16 if self.bf16 else torch.float16,
                                                     trust_remote_code=True)
                         .half()
+                        # TODO 修改为CPU方式启动
                         .cuda()
+                        # .float()
                     )
                 # 支持自定义cuda设备
                 elif ":" in self.llm_device:
