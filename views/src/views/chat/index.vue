@@ -110,10 +110,12 @@ async function handleSubmit() {
     loading.value = false
   }
   else {
+		//TODO 发送会话按钮
     onConversation()
   }
 }
 
+// --------------提交API begin--------------
 async function onConversation() {
   const message = prompt.value
   history.value = []
@@ -292,6 +294,7 @@ async function onConversation() {
     loading.value = false
   }
 }
+// --------------提交API end--------------
 async function onRegenerate(index: number) {
   if (loading.value)
     return
