@@ -1,4 +1,4 @@
-#encoding:utf-8
+# encoding:utf-8
 import argparse
 import json
 import os
@@ -299,7 +299,6 @@ async def update_doc(
                 return BaseResponse(code=500, msg=file_status)
 
 
-
 async def local_doc_chat(
         knowledge_base_id: str = Body(..., description="Knowledge Base Name", example="kb1"),
         question: str = Body(..., description="Question", example="工伤保险是什么？"),
@@ -422,7 +421,9 @@ async def stream_chat(websocket: WebSocket):
                 query=question, vs_path=vs_path, chat_history=history, streaming=True
         ):
             await asyncio.sleep(0)
-            await websocket.send_text(resp["result"][last_print_len:])
+            # await websocket.send_text(resp["result"][last_print_len:])
+            #TODO 这里自己修改了返回的方式改为json
+            await websocket.send_json({"response_part": resp["result"][last_print_len:]})
             last_print_len = len(resp["result"])
 
         source_documents = [
@@ -443,6 +444,7 @@ async def stream_chat(websocket: WebSocket):
             )
         )
         turn += 1
+
 
 async def stream_chat_bing(websocket: WebSocket):
     """
@@ -457,7 +459,8 @@ async def stream_chat_bing(websocket: WebSocket):
         await websocket.send_json({"question": question, "turn": turn, "flag": "start"})
 
         last_print_len = 0
-        for resp, history in local_doc_qa.get_search_result_based_answer(question, chat_history=history, streaming=True):
+        for resp, history in local_doc_qa.get_search_result_based_answer(question, chat_history=history,
+                                                                         streaming=True):
             await websocket.send_text(resp["result"][last_print_len:])
             last_print_len = len(resp["result"])
 
@@ -480,8 +483,10 @@ async def stream_chat_bing(websocket: WebSocket):
         )
         turn += 1
 
+
 async def document():
-    return RedirectResponse(url="/docs")
+    # return RedirectResponse(url="/docs")
+    return ""
 
 
 def api_start(host, port, **kwargs):
@@ -523,7 +528,8 @@ def api_start(host, port, **kwargs):
     app.get("/local_doc_qa/list_files", response_model=ListDocsResponse, summary="获取知识库内的文件列表")(list_docs)
     app.delete("/local_doc_qa/delete_knowledge_base", response_model=BaseResponse, summary="删除知识库")(delete_kb)
     app.delete("/local_doc_qa/delete_file", response_model=BaseResponse, summary="删除知识库内的文件")(delete_doc)
-    app.post("/local_doc_qa/update_file", response_model=BaseResponse, summary="上传文件到知识库，并删除另一个文件")(update_doc)
+    app.post("/local_doc_qa/update_file", response_model=BaseResponse, summary="上传文件到知识库，并删除另一个文件")(
+        update_doc)
 
     local_doc_qa = LocalDocQA()
     local_doc_qa.init_cfg(
@@ -541,7 +547,9 @@ def api_start(host, port, **kwargs):
 
 if __name__ == "__main__":
     parser.add_argument("--host", type=str, default="0.0.0.0")
-    parser.add_argument("--port", type=int, default=7862)
+    # parser.add_argument("--port", type=int, default=7862)
+    # parser.add_argument("--port", type=int, default=7862)
+    parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--ssl_keyfile", type=str)
     parser.add_argument("--ssl_certfile", type=str)
     # 初始化消息

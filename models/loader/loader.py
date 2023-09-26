@@ -130,7 +130,8 @@ class LoaderCheckPoint:
                                                     config=self.model_config,
                                                     torch_dtype=torch.bfloat16 if self.bf16 else torch.float16,
                                                     trust_remote_code=True)
-                        .half()
+                        #.half()
+                        #.quantize(4)
                         # TODO 修改为CPU方式启动
                         .cuda()
                         # .float()

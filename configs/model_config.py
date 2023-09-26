@@ -185,7 +185,7 @@ llm_model_dict = {
 }
 
 # LLM 名称
-# LLM_MODEL = "chatglm-6b"
+# LLM_MODEL = "chatglm2-6b"
 LLM_MODEL = "chatglm2-6b-int4"
 # 量化加载8bit 模型
 LOAD_IN_8BIT = False
