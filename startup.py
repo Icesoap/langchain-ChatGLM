@@ -272,7 +272,7 @@ def _set_app_event(app: FastAPI, started_event: mp.Event = None):
         if started_event is not None:
             started_event.set()
 
-
+#TODO 第二执行
 def run_controller(log_level: str = "INFO", started_event: mp.Event = None):
     import uvicorn
     import httpx
@@ -403,7 +403,7 @@ def run_model_worker(
 
     uvicorn.run(app, host=host, port=port, log_level=log_level.lower())
 
-
+#TODO 第三执行
 def run_openai_api(log_level: str = "INFO", started_event: mp.Event = None):
     import uvicorn
     import sys
@@ -421,7 +421,7 @@ def run_openai_api(log_level: str = "INFO", started_event: mp.Event = None):
         sys.stderr = sys.__stderr__
     uvicorn.run(app, host=host, port=port)
 
-
+#TODO 第四执行
 def run_api_server(started_event: mp.Event = None):
     from server.api import create_app
     import uvicorn
@@ -436,7 +436,7 @@ def run_api_server(started_event: mp.Event = None):
 
     uvicorn.run(app, host=host, port=port)
 
-
+#TODO 第五执行
 def run_webui(started_event: mp.Event = None):
     from server.utils import set_httpx_config
     set_httpx_config()
@@ -575,7 +575,10 @@ def dump_server_info(after_start=False, args=None):
     print("=" * 30 + "Langchain-Chatchat Configuration" + "=" * 30)
     print("\n")
 
-
+#TODO startup第一启动项
+'''
+    
+'''
 async def start_main_server():
     import time
     import signal

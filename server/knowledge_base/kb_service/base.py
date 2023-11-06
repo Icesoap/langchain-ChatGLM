@@ -47,6 +47,7 @@ class KBService(ABC):
         self.kb_path = get_kb_path(self.kb_name)
         self.doc_path = get_doc_path(self.kb_name)
         self.do_init()
+
     def _load_embeddings(self, embed_device: str = embedding_device()) -> Embeddings:
         return load_embeddings(self.embed_model, embed_device)
 
@@ -97,7 +98,38 @@ class KBService(ABC):
 
         if docs:
             self.delete_doc(kb_file)
+            # 添加到向量库
             doc_infos = self.do_add_doc(docs, **kwargs)
+            # 添加到initdb
+            status = add_file_to_db(kb_file,
+                                    custom_docs=custom_docs,
+                                    docs_count=len(docs),
+                                    doc_infos=doc_infos)
+        else:
+            status = False
+        return status
+
+    # 自己添加的方法-添加文档
+    def add_doc_custom(self, kb_file: KnowledgeFile, docs: List[Document] = []
+                       , file_id: int = None
+                       , **kwargs):
+        """
+        向知识库添加文件
+        如果指定了docs，则不再将文本向量化，并将数据库对应条目标为custom_docs=True
+        """
+        if docs:
+            custom_docs = True
+            for doc in docs:
+                doc.metadata.setdefault("source", kb_file.filepath)
+        else:
+            docs = kb_file.file2text()
+            custom_docs = False
+
+        if docs:
+            self.delete_doc(kb_file)
+            # 添加到向量库
+            doc_infos = self.do_add_doc(docs, **kwargs)
+            # 添加到initdb
             status = add_file_to_db(kb_file,
                                     custom_docs=custom_docs,
                                     docs_count=len(docs),
@@ -111,6 +143,7 @@ class KBService(ABC):
         从知识库删除文件
         """
         self.do_delete_doc(kb_file, **kwargs)
+        # 从 initdb 库删除
         status = delete_file_from_db(kb_file)
         if delete_content and os.path.exists(kb_file.filepath):
             os.remove(kb_file.filepath)
@@ -125,6 +158,18 @@ class KBService(ABC):
         return status
 
     def update_doc(self, kb_file: KnowledgeFile, docs: List[Document] = [], **kwargs):
+        """
+        使用content中的文件更新向量库
+        如果指定了docs，则使用自定义docs，并将数据库对应条目标为custom_docs=True
+        """
+        if os.path.exists(kb_file.filepath):
+            self.delete_doc(kb_file, **kwargs)
+            return self.add_doc(kb_file, docs=docs, **kwargs)
+
+    # 自己添加的方法-更新文档
+    def update_doc_custom(self, kb_file: KnowledgeFile, docs: List[Document] = []
+                          , file_id: int = None
+                          , **kwargs):
         """
         使用content中的文件更新向量库
         如果指定了docs，则使用自定义docs，并将数据库对应条目标为custom_docs=True
@@ -232,6 +277,11 @@ class KBService(ABC):
         从知识库删除全部向量子类实自己逻辑
         """
         pass
+
+
+'''
+知识库的向量库工厂
+'''
 
 
 class KBServiceFactory:

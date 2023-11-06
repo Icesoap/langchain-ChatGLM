@@ -7,12 +7,12 @@ from fastapi import Body
 from fastapi.responses import StreamingResponse
 from configs import LLM_MODEL, TEMPERATURE, HISTORY_LEN
 from server.utils import wrap_done, get_ChatOpenAI, get_prompt_template
-from langchain.chains import LLMChain
 from typing import AsyncIterable, Optional, Dict
 import asyncio
 from typing import List
 from server.chat.utils import History
 import json
+from langchain.chains import LLMChain
 from server.agent import model_container
 from server.knowledge_base.kb_service.base import get_kb_details
 

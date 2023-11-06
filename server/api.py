@@ -16,7 +16,7 @@ from server.chat import (chat, knowledge_base_chat, openai_chat,
 from server.knowledge_base.kb_api import list_kbs, create_kb, delete_kb
 from server.knowledge_base.kb_doc_api import (list_files, upload_docs, delete_docs,
                                               update_docs, download_doc, recreate_vector_store,
-                                              search_docs, DocumentWithScore, update_info)
+                                              search_docs, DocumentWithScore, update_info,upload_docs_custom_from_api)
 from server.llm_api import (list_running_models, list_config_models,
                             change_llm_model, stop_llm_model,
                             get_model_config, list_search_engines)
@@ -48,9 +48,9 @@ def create_app():
             allow_headers=["*"],
         )
 
-    app.get("/",
-            response_model=BaseResponse,
-            summary="swagger 文档")(document)
+    # app.get("/",
+    #         response_model=BaseResponse,
+    #         summary="swagger 文档")(document)
 
     # Tag: Chat
     app.post("/chat/fastchat",
@@ -108,6 +108,12 @@ def create_app():
              response_model=BaseResponse,
              summary="上传文件到知识库，并/或进行向量化"
              )(upload_docs)
+
+    app.post("/api/knowledge_base/pdm_upload_file_and_info",
+             tags=["pdm_upload_file_and_info"],
+             response_model=BaseResponse,
+             summary="PDM调用接口,上传文件到知识库，并/或进行向量化"
+             )(upload_docs_custom_from_api)
 
     app.post("/knowledge_base/delete_docs",
              tags=["Knowledge Base Management"],

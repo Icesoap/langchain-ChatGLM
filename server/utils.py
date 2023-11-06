@@ -99,7 +99,9 @@ def get_ChatOpenAI(
 
     return model
 
-
+'''
+    通用返回方法
+'''
 class BaseResponse(BaseModel):
     code: int = pydantic.Field(200, description="API status code")
     msg: str = pydantic.Field("success", description="API status message")

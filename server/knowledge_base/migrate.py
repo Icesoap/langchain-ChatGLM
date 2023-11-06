@@ -65,12 +65,14 @@ def folder2db(
             else:
                 print(result)
 
+    # TODO 初始化向量库的代码开始
     kb_names = kb_names or list_kbs_from_folder()
     for kb_name in kb_names:
         kb = KBServiceFactory.get_service(kb_name, vs_type, embed_model)
         kb.create_kb()
 
-        # 清除向量库，从本地文件重建
+
+        ## 清除向量库，从本地文件重建
         if mode == "recreate_vs":
             kb.clear_vs()
             kb.create_kb()

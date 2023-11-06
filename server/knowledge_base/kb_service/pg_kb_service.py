@@ -84,7 +84,8 @@ class PGKBService(KBService):
 if __name__ == '__main__':
     from server.db.base import Base, engine
 
-    # Base.metadata.create_all(bind=engine)
+    #TODO 向量库调用 测试
+    ## Base.metadata.create_all(bind=engine)
     pGKBService = PGKBService("test")
     # pGKBService.create_kb()
     # pGKBService.add_doc(KnowledgeFile("README.md", "test"))

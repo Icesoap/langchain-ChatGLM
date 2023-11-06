@@ -201,6 +201,7 @@ def dialogue_page(api: ApiRequest):
         if dialogue_mode == "LLM 对话":
             chat_box.ai_say("正在思考...")
             text = ""
+            #TODO ChatChat接口调用
             r = api.chat_chat(prompt,
                               history=history,
                               model=llm_model,

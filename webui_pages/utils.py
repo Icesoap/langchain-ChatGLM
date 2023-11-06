@@ -32,7 +32,10 @@ from pprint import pprint
 
 set_httpx_config()
 
-
+#TODO 接口封装
+'''
+    
+'''
 class ApiRequest:
     '''
     api.py调用的封装（同步模式）,简化api调用方式

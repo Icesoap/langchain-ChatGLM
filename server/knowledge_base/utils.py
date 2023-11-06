@@ -33,8 +33,18 @@ def validate_kb_name(knowledge_base_id: str) -> bool:
     return True
 
 
+'''
+    获取知识库物理路径
+'''
+
+
 def get_kb_path(knowledge_base_name: str):
     return os.path.join(KB_ROOT_PATH, knowledge_base_name)
+
+
+'''
+    获取文档路径
+'''
 
 
 def get_doc_path(knowledge_base_name: str):
@@ -43,6 +53,11 @@ def get_doc_path(knowledge_base_name: str):
 
 def get_vs_path(knowledge_base_name: str, vector_name: str):
     return os.path.join(get_kb_path(knowledge_base_name), vector_name)
+
+
+'''
+    获取文件路径
+'''
 
 
 def get_file_path(knowledge_base_name: str, doc_name: str):
@@ -88,12 +103,12 @@ class CustomJSONLoader(langchain.document_loaders.JSONLoader):
     '''
 
     def __init__(
-        self,
-        file_path: Union[str, Path],
-        content_key: Optional[str] = None,
-        metadata_func: Optional[Callable[[Dict, Dict], Dict]] = None,
-        text_content: bool = True,
-        json_lines: bool = False,
+            self,
+            file_path: Union[str, Path],
+            content_key: Optional[str] = None,
+            metadata_func: Optional[Callable[[Dict, Dict], Dict]] = None,
+            text_content: bool = True,
+            json_lines: bool = False,
     ):
         """Initialize the JSONLoader.
 
@@ -187,10 +202,10 @@ def get_loader(loader_name: str, file_path_or_content: Union[str, bytes, io.Stri
 
 
 def make_text_splitter(
-    splitter_name: str = TEXT_SPLITTER_NAME,
-    chunk_size: int = CHUNK_SIZE,
-    chunk_overlap: int = OVERLAP_SIZE,
-    llm_model: str = LLM_MODEL,
+        splitter_name: str = TEXT_SPLITTER_NAME,
+        chunk_size: int = CHUNK_SIZE,
+        chunk_overlap: int = OVERLAP_SIZE,
+        llm_model: str = LLM_MODEL,
 ):
     """
     根据参数获取特定的分词器
@@ -262,6 +277,7 @@ def make_text_splitter(
         text_splitter = TextSplitter(chunk_size=250, chunk_overlap=50)
     return text_splitter
 
+
 class KnowledgeFile:
     def __init__(
             self,
@@ -282,7 +298,7 @@ class KnowledgeFile:
         self.document_loader_name = get_LoaderClass(self.ext)
         self.text_splitter_name = TEXT_SPLITTER_NAME
 
-    def file2docs(self, refresh: bool=False):
+    def file2docs(self, refresh: bool = False):
         if self.docs is None or refresh:
             logger.info(f"{self.document_loader_name} used for {self.filepath}")
             loader = get_loader(self.document_loader_name, self.filepath)
@@ -290,20 +306,21 @@ class KnowledgeFile:
         return self.docs
 
     def docs2texts(
-        self,
-        docs: List[Document] = None,
-        zh_title_enhance: bool = ZH_TITLE_ENHANCE,
-        refresh: bool = False,
-        chunk_size: int = CHUNK_SIZE,
-        chunk_overlap: int = OVERLAP_SIZE,
-        text_splitter: TextSplitter = None,
+            self,
+            docs: List[Document] = None,
+            zh_title_enhance: bool = ZH_TITLE_ENHANCE,
+            refresh: bool = False,
+            chunk_size: int = CHUNK_SIZE,
+            chunk_overlap: int = OVERLAP_SIZE,
+            text_splitter: TextSplitter = None,
     ):
         docs = docs or self.file2docs(refresh=refresh)
         if not docs:
             return []
         if self.ext not in [".csv"]:
             if text_splitter is None:
-                text_splitter = make_text_splitter(splitter_name=self.text_splitter_name, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+                text_splitter = make_text_splitter(splitter_name=self.text_splitter_name, chunk_size=chunk_size,
+                                                   chunk_overlap=chunk_overlap)
             if self.text_splitter_name == "MarkdownHeaderTextSplitter":
                 docs = text_splitter.split_text(docs[0].page_content)
                 for doc in docs:
@@ -317,15 +334,18 @@ class KnowledgeFile:
         if zh_title_enhance:
             docs = func_zh_title_enhance(docs)
         self.splited_docs = docs
+        # TODO 自己添加
+        for doc in docs:
+            doc.metadata["file_id"] = 1
         return self.splited_docs
 
     def file2text(
-        self,
-        zh_title_enhance: bool = ZH_TITLE_ENHANCE,
-        refresh: bool = False,
-        chunk_size: int = CHUNK_SIZE,
-        chunk_overlap: int = OVERLAP_SIZE,
-        text_splitter: TextSplitter = None,
+            self,
+            zh_title_enhance: bool = ZH_TITLE_ENHANCE,
+            refresh: bool = False,
+            chunk_size: int = CHUNK_SIZE,
+            chunk_overlap: int = OVERLAP_SIZE,
+            text_splitter: TextSplitter = None,
     ):
         if self.splited_docs is None or refresh:
             docs = self.file2docs()
@@ -359,6 +379,7 @@ def files2docs_in_thread(
     如果传入参数是Tuple，形式为(filename, kb_name)
     生成器返回值为 status, (kb_name, file_name, docs | error)
     '''
+
     def file2docs(*, file: KnowledgeFile, **kwargs) -> Tuple[bool, Tuple[str, str, List[Document]]]:
         try:
             return True, (file.kb_name, file.filename, file.file2text(**kwargs))
@@ -373,8 +394,57 @@ def files2docs_in_thread(
         kwargs = {}
         try:
             if isinstance(file, tuple) and len(file) >= 2:
-                filename=file[0]
-                kb_name=file[1]
+                filename = file[0]
+                kb_name = file[1]
+                file = KnowledgeFile(filename=filename, knowledge_base_name=kb_name)
+            elif isinstance(file, dict):
+                filename = file.pop("filename")
+                kb_name = file.pop("kb_name")
+                kwargs.update(file)
+                file = KnowledgeFile(filename=filename, knowledge_base_name=kb_name)
+            kwargs["file"] = file
+            kwargs["chunk_size"] = chunk_size
+            kwargs["chunk_overlap"] = chunk_overlap
+            kwargs["zh_title_enhance"] = zh_title_enhance
+            kwargs_list.append(kwargs)
+        except Exception as e:
+            yield False, (kb_name, filename, str(e))
+
+    for result in run_in_thread_pool(func=file2docs, params=kwargs_list, pool=pool):
+        yield result
+
+
+# 自己添加方法-文件到文档,多线程方式
+def files2docs_in_thread_custom(
+        file_id: int,
+        files: List[Union[KnowledgeFile, Tuple[str, str], Dict]],
+        chunk_size: int = CHUNK_SIZE,
+        chunk_overlap: int = OVERLAP_SIZE,
+        zh_title_enhance: bool = ZH_TITLE_ENHANCE,
+        pool: ThreadPoolExecutor = None,
+) -> Generator:
+    '''
+    利用多线程批量将磁盘文件转化成langchain Document.
+    如果传入参数是Tuple，形式为(filename, kb_name)
+    生成器返回值为 status, (kb_name, file_name, docs | error)
+    '''
+
+    def file2docs(*, file: KnowledgeFile, **kwargs) -> Tuple[bool, Tuple[str, str, List[Document]]]:
+        try:
+            return True, (file.kb_name, file.filename, file.file2text(**kwargs))
+        except Exception as e:
+            msg = f"从文件 {file.kb_name}/{file.filename} 加载文档时出错：{e}"
+            logger.error(f'{e.__class__.__name__}: {msg}',
+                         exc_info=e if log_verbose else None)
+            return False, (file.kb_name, file.filename, msg)
+
+    kwargs_list = []
+    for i, file in enumerate(files):
+        kwargs = {}
+        try:
+            if isinstance(file, tuple) and len(file) >= 2:
+                filename = file[0]
+                kb_name = file[1]
                 file = KnowledgeFile(filename=filename, knowledge_base_name=kb_name)
             elif isinstance(file, dict):
                 filename = file.pop("filename")
