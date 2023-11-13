@@ -83,6 +83,7 @@ def load_embeddings(model: str = EMBEDDING_MODEL, device: str = embedding_device
     return embeddings_pool.load_embeddings(model=model, device=device)
 
 
+#TODO 支持的格式
 LOADER_DICT = {"UnstructuredHTMLLoader": ['.html'],
                "UnstructuredMarkdownLoader": ['.md'],
                "CustomJSONLoader": [".json"],

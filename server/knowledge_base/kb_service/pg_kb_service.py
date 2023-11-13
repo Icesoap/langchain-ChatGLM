@@ -67,6 +67,14 @@ class PGKBService(KBService):
         doc_infos = [{"id": id, "metadata": doc.metadata} for id, doc in zip(ids, docs)]
         return doc_infos
 
+    # '''
+    #     自己添加的方法-执行添加文档到向量库
+    # '''
+    def do_add_doc_custom(self, docs: List[Document], **kwargs) -> List[Dict]:
+        ids = self.pg_vector.add_documents_custom(docs, **kwargs)
+        doc_infos = [{"id": id, "metadata": doc.metadata} for id, doc in zip(ids, docs)]
+        return doc_infos
+
     def do_delete_doc(self, kb_file: KnowledgeFile, **kwargs):
         with self.pg_vector.connect() as connect:
             filepath = kb_file.filepath.replace('\\', '\\\\')
@@ -84,7 +92,7 @@ class PGKBService(KBService):
 if __name__ == '__main__':
     from server.db.base import Base, engine
 
-    #TODO 向量库调用 测试
+    # TODO 向量库调用 测试
     ## Base.metadata.create_all(bind=engine)
     pGKBService = PGKBService("test")
     # pGKBService.create_kb()

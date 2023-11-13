@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import os
 import urllib
 from fastapi import File, Form, Body, Query, UploadFile
@@ -65,6 +67,8 @@ def _save_files_in_thread(files: List[UploadFile],
         保存单个文件。
         '''
         try:
+
+
             filename = file.filename
             file_path = get_file_path(knowledge_base_name=knowledge_base_name, doc_name=filename)
             data = {"knowledge_base_name": knowledge_base_name, "file_name": filename}
@@ -107,6 +111,7 @@ def _save_files_in_thread(files: List[UploadFile],
 #     return StreamingResponse(generate(files, knowledge_base_name=knowledge_base_name, override=override), media_type="text/event-stream")
 
 
+
 # TODO: 等langchain.document_loaders支持内存文件的时候再开通
 # def files2docs(files: List[UploadFile] = File(..., description="上传文件，支持多文件"),
 #                 knowledge_base_name: str = Form(..., description="知识库名称", examples=["samples"]),
@@ -127,24 +132,40 @@ def upload_docs_custom_from_api(archiveName: str = Form(None, description="档�
                                 fileId: int = Form(None, description="文件Id")
                                 , fileName: str = Form(None, description="文件名称")
                                 , filePath: str = Form(None, description="文件路径")
-                                , cardInfo: Json = Form(None, description="卡片信息,json格式",
+                                , cardInfo: str = Form(None, description="卡片信息,json格式",
                                                         example='{"长度":12,"宽度":15}')
-                                , permissionUsers: str = Form(None, description="有权限的用户,数组格式",
+                                , permissionUsers: List[str] = Form(None, description="有权限的用户,数组格式",
                                                               example='["用户1","用户2"]')
                                 , workFlowStatus: str = Form(None, description="pdm文件流程状态")
-                                , fileBytes: UploadFile = File(..., description="上传文件")
+                                , fileBytes: UploadFile = File(None, description="上传文件")
                                 ):
-    print(f"测试,文件id:{fileId},文件名称:{fileName},cardInfo:{cardInfo},permissionUsers:{permissionUsers}")
-    print(f"测试文件名:{fileBytes.filename}")
+    print(f"测试,archiveName:{archiveName},文件id:{fileId},文件名称:{fileName}"
+          f",filePath:{filePath},cardInfo:{cardInfo},"
+          f"permissionUsers:{permissionUsers},workFlowStatus:{workFlowStatus}")
 
-    #准备文件列表
-    file_list=list()
+    # print(f"测试文件名:{fileBytes.filename}")
+    allow_empty_kb = True
+
+    kb = KBServiceFactory.get_service(archiveName, DEFAULT_VS_TYPE, EMBEDDING_MODEL)
+    if not kb.exists() and not allow_empty_kb:
+        yield {"code": 404, "msg": f"未找到知识库 ‘{archiveName}’"}
+    else:
+        # if kb.exists():
+        #     kb.clear_vs()
+        kb.create_kb()
+
+    # 准备文件列表
+    file_list = list()
     file_list.append(fileBytes)
 
-    #调用chatchat的上传
-    upload_docs_custom(file_list)
+    # 调用chatchat的上传,并加入额外的信息
+    base_response = upload_docs_custom(file_list, archiveName, docs={}, archive_name=archiveName,file_id=fileId, file_name=fileName,
+                                       file_path=filePath
+                                       , card_info=cardInfo, permission_users=permissionUsers,
+                                       work_flow_status=workFlowStatus)
 
-    return BaseResponse(code=200, msg="上传成功")
+    # return BaseResponse(code=200, msg="上传成功")
+    return base_response
 
 
 # '''
@@ -160,6 +181,7 @@ def upload_docs_custom(files: List[UploadFile] = File(..., description="上传�
                        docs: Json = Form({}, description="自定义的docs，需要转为json字符串",
                                          examples=[{"test.txt": [Document(page_content="custom doc")]}]),
                        not_refresh_vs_cache: bool = Form(False, description="暂不保存向量库（用于FAISS）"),
+                       **kwargs
                        ) -> BaseResponse:
     '''
     API接口：上传文件，并/或向量化
@@ -179,13 +201,15 @@ def upload_docs_custom(files: List[UploadFile] = File(..., description="上传�
         filename = result["data"]["file_name"]
         if result["code"] != 200:
             failed_files[filename] = result["msg"]
+            # 如果文件上传失败,直接报错
+            return BaseResponse(code=500, msg="文件上传失败", data={"failed_files": failed_files})
 
         if filename not in file_names:
             file_names.append(filename)
 
     # 对保存的文件进行向量化
     if to_vector_store:
-        result = update_docs(
+        result = update_docs_custom(
             knowledge_base_name=knowledge_base_name,
             file_names=file_names,
             override_custom_docs=True,
@@ -194,6 +218,7 @@ def upload_docs_custom(files: List[UploadFile] = File(..., description="上传�
             zh_title_enhance=zh_title_enhance,
             docs=docs,
             not_refresh_vs_cache=True,
+            **kwargs
         )
         failed_files.update(result.data["failed_files"])
         if not not_refresh_vs_cache:
@@ -353,6 +378,86 @@ def update_docs(
                                     knowledge_base_name=knowledge_base_name)
             kb_file.splited_docs = new_docs
             kb.update_doc(kb_file, not_refresh_vs_cache=True)
+        else:
+            kb_name, file_name, error = result
+            failed_files[file_name] = error
+
+    # 将自定义的docs进行向量化
+    for file_name, v in docs.items():
+        try:
+            v = [x if isinstance(x, Document) else Document(**x) for x in v]
+            kb_file = KnowledgeFile(filename=file_name, knowledge_base_name=knowledge_base_name)
+            kb.update_doc(kb_file, docs=v, not_refresh_vs_cache=True)
+        except Exception as e:
+            msg = f"为 {file_name} 添加自定义docs时出错：{e}"
+            logger.error(f'{e.__class__.__name__}: {msg}',
+                         exc_info=e if log_verbose else None)
+            failed_files[file_name] = msg
+
+    if not not_refresh_vs_cache:
+        kb.save_vector_store()
+
+    return BaseResponse(code=200, msg=f"更新文档完成", data={"failed_files": failed_files})
+
+
+'''
+    自己添加的方法-更新文档,进行向量化
+'''
+
+
+def update_docs_custom(
+        knowledge_base_name: str = Body(..., description="知识库名称", examples=["samples"]),
+        file_names: List[str] = Body(..., description="文件名称，支持多文件", examples=[["file_name1", "text.txt"]]),
+        chunk_size: int = Body(CHUNK_SIZE, description="知识库中单段文本最大长度"),
+        chunk_overlap: int = Body(OVERLAP_SIZE, description="知识库中相邻文本重合长度"),
+        zh_title_enhance: bool = Body(ZH_TITLE_ENHANCE, description="是否开启中文标题加强"),
+        override_custom_docs: bool = Body(False, description="是否覆盖之前自定义的docs"),
+        docs: Json = Body({}, description="自定义的docs，需要转为json字符串",
+                          examples=[{"test.txt": [Document(page_content="custom doc")]}]),
+        not_refresh_vs_cache: bool = Body(False, description="暂不保存向量库（用于FAISS）"),
+        **kwargs
+) -> BaseResponse:
+    '''
+    更新知识库文档
+    '''
+    if not validate_kb_name(knowledge_base_name):
+        return BaseResponse(code=403, msg="Don't attack me")
+
+    kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
+    if kb is None:
+        return BaseResponse(code=404, msg=f"未找到知识库 {knowledge_base_name}")
+
+    failed_files = {}
+    kb_files = []
+
+    # 生成需要加载docs的文件列表
+    for file_name in file_names:
+        file_detail = get_file_detail(kb_name=knowledge_base_name, filename=file_name)
+        # 如果该文件之前使用了自定义docs，则根据参数决定略过或覆盖
+        if file_detail.get("custom_docs") and not override_custom_docs:
+            continue
+        if file_name not in docs:
+            try:
+                kb_files.append(KnowledgeFile(filename=file_name, knowledge_base_name=knowledge_base_name))
+            except Exception as e:
+                msg = f"加载文档 {file_name} 时出错：{e}"
+                logger.error(f'{e.__class__.__name__}: {msg}',
+                             exc_info=e if log_verbose else None)
+                failed_files[file_name] = msg
+
+    # 从文件生成docs，并进行向量化。
+    # 这里利用了KnowledgeFile的缓存功能，在多线程中加载Document，然后传给KnowledgeFile
+    for status, result in files2docs_in_thread(kb_files,
+                                               chunk_size=chunk_size,
+                                               chunk_overlap=chunk_overlap,
+                                               zh_title_enhance=zh_title_enhance):
+        if status:
+            kb_name, file_name, new_docs = result
+            kb_file = KnowledgeFile(filename=file_name,
+                                    knowledge_base_name=knowledge_base_name)
+            kb_file.splited_docs = new_docs
+            # 自己修改代码-添加pdm上传的参数
+            kb.update_doc_custom(kb_file, not_refresh_vs_cache=True, **kwargs)
         else:
             kb_name, file_name, error = result
             failed_files[file_name] = error

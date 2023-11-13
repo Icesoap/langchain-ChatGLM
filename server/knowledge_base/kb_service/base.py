@@ -111,7 +111,6 @@ class KBService(ABC):
 
     # 自己添加的方法-添加文档
     def add_doc_custom(self, kb_file: KnowledgeFile, docs: List[Document] = []
-                       , file_id: int = None
                        , **kwargs):
         """
         向知识库添加文件
@@ -128,7 +127,7 @@ class KBService(ABC):
         if docs:
             self.delete_doc(kb_file)
             # 添加到向量库
-            doc_infos = self.do_add_doc(docs, **kwargs)
+            doc_infos = self.do_add_doc_custom(docs, **kwargs)
             # 添加到initdb
             status = add_file_to_db(kb_file,
                                     custom_docs=custom_docs,
@@ -168,7 +167,6 @@ class KBService(ABC):
 
     # 自己添加的方法-更新文档
     def update_doc_custom(self, kb_file: KnowledgeFile, docs: List[Document] = []
-                          , file_id: int = None
                           , **kwargs):
         """
         使用content中的文件更新向量库
@@ -176,7 +174,7 @@ class KBService(ABC):
         """
         if os.path.exists(kb_file.filepath):
             self.delete_doc(kb_file, **kwargs)
-            return self.add_doc(kb_file, docs=docs, **kwargs)
+            return self.add_doc_custom(kb_file, docs=docs, **kwargs)
 
     def exist_doc(self, file_name: str):
         return file_exists_in_db(KnowledgeFile(knowledge_base_name=self.kb_name,
@@ -256,6 +254,16 @@ class KBService(ABC):
 
     @abstractmethod
     def do_add_doc(self,
+                   docs: List[Document],
+                   ) -> List[Dict]:
+        """
+        向知识库添加文档子类实自己逻辑
+        """
+        pass
+
+    #自己添加的方法-向量库Service执行添加文档向量化
+    @abstractmethod
+    def do_add_doc_custom(self,
                    docs: List[Document],
                    ) -> List[Dict]:
         """

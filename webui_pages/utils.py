@@ -274,6 +274,7 @@ class ApiRequest:
         )
         return self._httpx_stream2generator(response)
 
+    #TODO ChatChat调用
     def chat_chat(
         self,
         query: str,
