@@ -424,7 +424,9 @@ class EmbeddingsFunAdapter(Embeddings):
 def score_threshold_process(score_threshold, k, docs):
     if score_threshold is not None:
         cmp = (
-            operator.le
+            # TODO 这里应该是写反了 应该改成ge(大于等于)
+            # operator.le
+            operator.ge
         )
         docs = [
             (doc, similarity)

@@ -33,6 +33,7 @@ def search_docs(query: str = Body(..., description="用户输入", examples=["�
     kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
     if kb is None:
         return []
+    #查询向量库
     docs = kb.search_docs(query, top_k, score_threshold)
     data = [DocumentWithScore(**x[0].dict(), score=x[1]) for x in docs]
 

@@ -99,9 +99,12 @@ def get_ChatOpenAI(
 
     return model
 
+
 '''
     通用返回方法
 '''
+
+
 class BaseResponse(BaseModel):
     code: int = pydantic.Field(200, description="API status code")
     msg: str = pydantic.Field("success", description="API status message")
@@ -113,6 +116,21 @@ class BaseResponse(BaseModel):
                 "code": 200,
                 "msg": "success",
             }
+        }
+
+
+# 自定义SSE返回
+class BaseResponseSSE(BaseModel):
+    def __int__(self):
+        pass
+
+    # 自定义sse报错
+    async def stream_err(self, msg: str):
+        yield {
+            "event": "error",
+            "id": "message_id",
+            "retry": 15000,  # Retry timeout in milliseconds
+            "data": msg  # Replace with your actual message
         }
 
 
