@@ -83,7 +83,7 @@ def load_embeddings(model: str = EMBEDDING_MODEL, device: str = embedding_device
     return embeddings_pool.load_embeddings(model=model, device=device)
 
 
-#TODO 支持的格式
+# TODO 支持的格式
 LOADER_DICT = {"UnstructuredHTMLLoader": ['.html'],
                "UnstructuredMarkdownLoader": ['.md'],
                "CustomJSONLoader": [".json"],
@@ -303,6 +303,7 @@ class KnowledgeFile:
         if self.docs is None or refresh:
             logger.info(f"{self.document_loader_name} used for {self.filepath}")
             loader = get_loader(self.document_loader_name, self.filepath)
+            # 这里调用loader 和文件路径 生成了文档docs
             self.docs = loader.load()
         return self.docs
 
@@ -350,6 +351,40 @@ class KnowledgeFile:
     ):
         if self.splited_docs is None or refresh:
             docs = self.file2docs()
+            self.splited_docs = self.docs2texts(docs=docs,
+                                                zh_title_enhance=zh_title_enhance,
+                                                refresh=refresh,
+                                                chunk_size=chunk_size,
+                                                chunk_overlap=chunk_overlap,
+                                                text_splitter=text_splitter)
+        return self.splited_docs
+
+    # 自己添加的方法-文件转文本,这里加入卡片信息等内容
+    # **kwargs 自己添加的参数 卡片信息等
+    def file2text_custom(
+            self,
+            zh_title_enhance: bool = ZH_TITLE_ENHANCE,
+            refresh: bool = False,
+            chunk_size: int = CHUNK_SIZE,
+            chunk_overlap: int = OVERLAP_SIZE,
+            text_splitter: TextSplitter = None,
+            **kwargs
+    ):
+        if self.splited_docs is None or refresh:
+            docs = self.file2docs()
+
+            if docs and docs[0]:
+                file_name = kwargs["file_name"]
+                file_path = kwargs["file_path"]
+                card_info = kwargs["card_info"]
+                work_flow_status = kwargs["work_flow_status"]
+                tmp_content = docs[0].page_content
+                docs[0].page_content = f'源文件:{file_name}\n' \
+                                       f'文档路径:{file_path}\n' \
+                                       f'卡片信息:\n{card_info}\n' \
+                                       f'工作流状态:{work_flow_status}\n' \
+                                       f'{tmp_content}'
+            print(docs[0].page_content)
             self.splited_docs = self.docs2texts(docs=docs,
                                                 zh_title_enhance=zh_title_enhance,
                                                 refresh=refresh,
@@ -417,12 +452,12 @@ def files2docs_in_thread(
 
 # 自己添加方法-文件到文档,多线程方式
 def files2docs_in_thread_custom(
-        file_id: int,
         files: List[Union[KnowledgeFile, Tuple[str, str], Dict]],
         chunk_size: int = CHUNK_SIZE,
         chunk_overlap: int = OVERLAP_SIZE,
         zh_title_enhance: bool = ZH_TITLE_ENHANCE,
         pool: ThreadPoolExecutor = None,
+        **kwargs
 ) -> Generator:
     '''
     利用多线程批量将磁盘文件转化成langchain Document.
@@ -432,7 +467,7 @@ def files2docs_in_thread_custom(
 
     def file2docs(*, file: KnowledgeFile, **kwargs) -> Tuple[bool, Tuple[str, str, List[Document]]]:
         try:
-            return True, (file.kb_name, file.filename, file.file2text(**kwargs))
+            return True, (file.kb_name, file.filename, file.file2text_custom(**kwargs))
         except Exception as e:
             msg = f"从文件 {file.kb_name}/{file.filename} 加载文档时出错：{e}"
             logger.error(f'{e.__class__.__name__}: {msg}',
@@ -441,7 +476,7 @@ def files2docs_in_thread_custom(
 
     kwargs_list = []
     for i, file in enumerate(files):
-        kwargs = {}
+        kwargs_tmp = {}
         try:
             if isinstance(file, tuple) and len(file) >= 2:
                 filename = file[0]
@@ -450,13 +485,17 @@ def files2docs_in_thread_custom(
             elif isinstance(file, dict):
                 filename = file.pop("filename")
                 kb_name = file.pop("kb_name")
-                kwargs.update(file)
+                kwargs_tmp.update(file)
                 file = KnowledgeFile(filename=filename, knowledge_base_name=kb_name)
-            kwargs["file"] = file
-            kwargs["chunk_size"] = chunk_size
-            kwargs["chunk_overlap"] = chunk_overlap
-            kwargs["zh_title_enhance"] = zh_title_enhance
-            kwargs_list.append(kwargs)
+            kwargs_tmp["file"] = file
+            kwargs_tmp["chunk_size"] = chunk_size
+            kwargs_tmp["chunk_overlap"] = chunk_overlap
+            kwargs_tmp["zh_title_enhance"] = zh_title_enhance
+            kwargs_tmp["file_name"] = kwargs['file_name']
+            kwargs_tmp["file_path"] = kwargs['file_path']
+            kwargs_tmp["card_info"] = kwargs['card_info']
+            kwargs_tmp["work_flow_status"] = kwargs['work_flow_status']
+            kwargs_list.append(kwargs_tmp)
         except Exception as e:
             yield False, (kb_name, filename, str(e))
 

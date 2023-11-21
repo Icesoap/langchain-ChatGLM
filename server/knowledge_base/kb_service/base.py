@@ -195,6 +195,17 @@ class KBService(ABC):
         docs = self.do_search(query, top_k, score_threshold, embeddings)
         return docs
 
+    # 自己添加的方法- 查询知识库
+    def search_docs_custom(self,
+                           query: str,
+                           top_k: int = VECTOR_SEARCH_TOP_K,
+                           score_threshold: float = SCORE_THRESHOLD,
+                           embedding_filter: Optional[dict] = None
+                           ):
+        embeddings = self._load_embeddings()
+        docs = self.do_search_custom(query, top_k, score_threshold, embeddings, embedding_filter)
+        return docs
+
     def get_doc_by_id(self, id: str) -> Optional[Document]:
         return None
 
@@ -252,6 +263,20 @@ class KBService(ABC):
         """
         pass
 
+    # 自己添加的方法-执行搜索知识库
+    @abstractmethod
+    def do_search_custom(self,
+                         query: str,
+                         top_k: int,
+                         score_threshold: float,
+                         embeddings: Embeddings,
+                         embedding_filter: Optional[dict] = None
+                         ) -> List[Document]:
+        """
+        搜索知识库子类实自己逻辑
+        """
+        pass
+
     @abstractmethod
     def do_add_doc(self,
                    docs: List[Document],
@@ -261,11 +286,11 @@ class KBService(ABC):
         """
         pass
 
-    #自己添加的方法-向量库Service执行添加文档向量化
+    # 自己添加的方法-向量库Service执行添加文档向量化
     @abstractmethod
     def do_add_doc_custom(self,
-                   docs: List[Document],
-                   ) -> List[Dict]:
+                          docs: List[Document],
+                          ) -> List[Dict]:
         """
         向知识库添加文档子类实自己逻辑
         """

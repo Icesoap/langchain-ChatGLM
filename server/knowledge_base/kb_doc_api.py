@@ -9,7 +9,7 @@ from configs import (DEFAULT_VS_TYPE, EMBEDDING_MODEL,
                      logger, log_verbose, )
 from server.utils import BaseResponse, ListResponse, run_in_thread_pool
 from server.knowledge_base.utils import (validate_kb_name, list_files_from_folder, get_file_path,
-                                         files2docs_in_thread, KnowledgeFile)
+                                         files2docs_in_thread, files2docs_in_thread_custom, KnowledgeFile)
 from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import Json
 import json
@@ -33,8 +33,28 @@ def search_docs(query: str = Body(..., description="用户输入", examples=["�
     kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
     if kb is None:
         return []
-    #查询向量库
+    # 查询向量库
     docs = kb.search_docs(query, top_k, score_threshold)
+    data = [DocumentWithScore(**x[0].dict(), score=x[1]) for x in docs]
+
+    return data
+
+
+# 自己添加的方法-查询知识库
+def search_docs_custom(query: str = Body(..., description="用户输入", examples=["你好"]),
+                       knowledge_base_name: str = Body(..., description="知识库名称", examples=["samples"]),
+                       top_k: int = Body(VECTOR_SEARCH_TOP_K, description="匹配向量数"),
+                       score_threshold: float = Body(SCORE_THRESHOLD,
+                                                     description="知识库匹配相关度阈值，取值范围在0-1之间，SCORE越小，相关度越高，取到1相当于不筛选，建议设置在0.5左右",
+                                                     ge=0, le=1),
+                       embedding_filter: dict = Body(None, description="用户输入",
+                                                     examples=[{'permission_users': '用户1'}]),
+                       ) -> List[DocumentWithScore]:
+    kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
+    if kb is None:
+        return []
+    # 查询向量库
+    docs = kb.search_docs_custom(query, top_k, score_threshold, embedding_filter)
     data = [DocumentWithScore(**x[0].dict(), score=x[1]) for x in docs]
 
     return data
@@ -69,7 +89,6 @@ def _save_files_in_thread(files: List[UploadFile],
         '''
         try:
 
-
             filename = file.filename
             file_path = get_file_path(knowledge_base_name=knowledge_base_name, doc_name=filename)
             data = {"knowledge_base_name": knowledge_base_name, "file_name": filename}
@@ -83,7 +102,7 @@ def _save_files_in_thread(files: List[UploadFile],
                 file_status = f"文件 {filename} 已存在。"
                 logger.warn(file_status)
                 return dict(code=404, msg=file_status, data=data)
-
+            # file_content = file_content + bytes("\nabc", 'utf-8')
             with open(file_path, "wb") as f:
                 f.write(file_content)
             return dict(code=200, msg=f"成功上传文件 {filename}", data=data)
@@ -112,7 +131,6 @@ def _save_files_in_thread(files: List[UploadFile],
 #     return StreamingResponse(generate(files, knowledge_base_name=knowledge_base_name, override=override), media_type="text/event-stream")
 
 
-
 # TODO: 等langchain.document_loaders支持内存文件的时候再开通
 # def files2docs(files: List[UploadFile] = File(..., description="上传文件，支持多文件"),
 #                 knowledge_base_name: str = Form(..., description="知识库名称", examples=["samples"]),
@@ -134,8 +152,8 @@ def upload_docs_custom_from_api(archiveName: str = Form(None, description="档�
                                 , fileName: str = Form(None, description="文件名称")
                                 , filePath: str = Form(None, description="文件路径")
                                 , cardInfo: str = Form(None, description="卡片信息,json格式",
-                                                        example='{"长度":12,"宽度":15}')
-                                , permissionUsers: List[str] = Form(None, description="有权限的用户,数组格式",
+                                                       example='{"长度":12,"宽度":15}')
+                                , permissionUsers: str = Form(None, description="有权限的用户,数组格式",
                                                               example='["用户1","用户2"]')
                                 , workFlowStatus: str = Form(None, description="pdm文件流程状态")
                                 , fileBytes: UploadFile = File(None, description="上传文件")
@@ -146,6 +164,11 @@ def upload_docs_custom_from_api(archiveName: str = Form(None, description="档�
 
     # print(f"测试文件名:{fileBytes.filename}")
     allow_empty_kb = True
+
+    permissionUsersParamList = None
+    if permissionUsers:
+        permissionUsersParamList = permissionUsers.split(",")
+        # permissionUsersParamList = json.loads(permissionUsers)
 
     kb = KBServiceFactory.get_service(archiveName, DEFAULT_VS_TYPE, EMBEDDING_MODEL)
     if not kb.exists() and not allow_empty_kb:
@@ -160,9 +183,11 @@ def upload_docs_custom_from_api(archiveName: str = Form(None, description="档�
     file_list.append(fileBytes)
 
     # 调用chatchat的上传,并加入额外的信息
-    base_response = upload_docs_custom(file_list, archiveName, docs={}, archive_name=archiveName,file_id=fileId, file_name=fileName,
+    base_response = upload_docs_custom(file_list, archiveName, docs={}, archive_name=archiveName, file_id=fileId,
+                                       file_name=fileName,
                                        file_path=filePath
-                                       , card_info=cardInfo, permission_users=permissionUsers,
+                                       , card_info=cardInfo,
+                                       permission_users=permissionUsersParamList,
                                        work_flow_status=workFlowStatus)
 
     # return BaseResponse(code=200, msg="上传成功")
@@ -441,6 +466,7 @@ def update_docs_custom(
             try:
                 kb_files.append(KnowledgeFile(filename=file_name, knowledge_base_name=knowledge_base_name))
             except Exception as e:
+                # TODO 此处要返回错误
                 msg = f"加载文档 {file_name} 时出错：{e}"
                 logger.error(f'{e.__class__.__name__}: {msg}',
                              exc_info=e if log_verbose else None)
@@ -448,10 +474,10 @@ def update_docs_custom(
 
     # 从文件生成docs，并进行向量化。
     # 这里利用了KnowledgeFile的缓存功能，在多线程中加载Document，然后传给KnowledgeFile
-    for status, result in files2docs_in_thread(kb_files,
-                                               chunk_size=chunk_size,
-                                               chunk_overlap=chunk_overlap,
-                                               zh_title_enhance=zh_title_enhance):
+    for status, result in files2docs_in_thread_custom(kb_files,
+                                                      chunk_size=chunk_size,
+                                                      chunk_overlap=chunk_overlap,
+                                                      zh_title_enhance=zh_title_enhance, **kwargs):
         if status:
             kb_name, file_name, new_docs = result
             kb_file = KnowledgeFile(filename=file_name,
@@ -474,6 +500,7 @@ def update_docs_custom(
             logger.error(f'{e.__class__.__name__}: {msg}',
                          exc_info=e if log_verbose else None)
             failed_files[file_name] = msg
+            return BaseResponse(code=500, msg=msg, data=failed_files)
 
     if not not_refresh_vs_cache:
         kb.save_vector_store()

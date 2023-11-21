@@ -13,7 +13,7 @@ from server.knowledge_base.kb_service.base import KBService, KBServiceFactory
 import json
 import os
 from urllib.parse import urlencode
-from server.knowledge_base.kb_doc_api import search_docs
+from server.knowledge_base.kb_doc_api import search_docs, search_docs_custom
 from sse_starlette import EventSourceResponse, ServerSentEvent
 
 
@@ -43,9 +43,14 @@ async def knowledge_base_chat_custom(query: str = Body(..., description="用户�
                                      prompt_name: str = Body("default",
                                                              description="使用的prompt模板名称(在configs/prompt_config.py中配置)"),
                                      ):
+    print(
+        f"query:{query},knowledge_base_name:{knowledge_base_name},user_name:{user_name},score_threshold:{score_threshold}"
+        f",history:{history},stream:{stream},model_name:{model_name},temperature:{temperature},prompt_name:{prompt_name}")
+
     # 设置字段默认值
     prompt_name = "knowledge_first"
     score_threshold = 0
+    temperature = 0.7
 
     kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
     if kb is None:
@@ -56,12 +61,12 @@ async def knowledge_base_chat_custom(query: str = Body(..., description="用户�
 
     history = [History.from_data(h) for h in history]
 
-    async def knowledge_base_chat_iterator(query: str,
-                                           top_k: int,
-                                           history: Optional[List[History]],
-                                           model_name: str = LLM_MODEL,
-                                           prompt_name: str = prompt_name,
-                                           ) -> AsyncIterable[str]:
+    async def knowledge_base_chat_iterator_custom(query: str,
+                                                  top_k: int,
+                                                  history: Optional[List[History]],
+                                                  model_name: str = LLM_MODEL,
+                                                  prompt_name: str = prompt_name,
+                                                  ) -> AsyncIterable[str]:
         callback = AsyncIteratorCallbackHandler()
         model = get_ChatOpenAI(
             model_name=model_name,
@@ -69,8 +74,11 @@ async def knowledge_base_chat_custom(query: str = Body(..., description="用户�
             max_tokens=max_tokens,
             callbacks=[callback],
         )
+        embedding_filter = dict
+        if user_name:
+            embedding_filter = {"permission_users": user_name}
         # 搜索知识库
-        docs = search_docs(query, knowledge_base_name, top_k, score_threshold)
+        docs = search_docs_custom(query, knowledge_base_name, top_k, score_threshold, embedding_filter)
         context = "\n".join([doc.page_content for doc in docs])
 
         prompt_template = get_prompt_template("knowledge_base_chat", prompt_name)
@@ -116,11 +124,11 @@ async def knowledge_base_chat_custom(query: str = Body(..., description="用户�
     #                                                                 model_name=model_name,
     #                                                                 prompt_name=prompt_name),
     #                            media_type="text/event-stream")
-    result = EventSourceResponse(content=knowledge_base_chat_iterator(query=query,
-                                                                      top_k=top_k,
-                                                                      history=history,
-                                                                      model_name=model_name,
-                                                                      prompt_name=prompt_name),
+    result = EventSourceResponse(content=knowledge_base_chat_iterator_custom(query=query,
+                                                                             top_k=top_k,
+                                                                             history=history,
+                                                                             model_name=model_name,
+                                                                             prompt_name=prompt_name),
                                  media_type="text/event-stream")
 
     return result
