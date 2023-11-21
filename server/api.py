@@ -13,7 +13,7 @@ import argparse
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import RedirectResponse
-from server.chat import (chat, knowledge_base_chat, knowledge_base_chat_custom, openai_chat,
+from server.chat import (chat, knowledge_base_chat, knowledge_base_chat_custom,knowledge_base_chat_only, openai_chat,
                          search_engine_chat, agent_chat)
 from server.knowledge_base.kb_api import list_kbs, create_kb, delete_kb
 from server.knowledge_base.kb_doc_api import (list_files, upload_docs, delete_docs,
@@ -66,10 +66,16 @@ def create_app():
     app.post("/chat/knowledge_base_chat",
              tags=["Chat"],
              summary="与知识库对话")(knowledge_base_chat)
-    # 自己添加的方法-与知识库对话接口
+    # 自己添加的方法-与知识库对话接口,主要查PDM(有权限过滤)
+    # 通过prompt可以设置 1查询知识库和LLM 2.只查询知识库
     app.post("/api/chat/knowledge_base_chat_custom",
              tags=["Chat"],
              summary="与知识库对话")(knowledge_base_chat_custom)
+
+    # 自己添加的方法-与知识库对话接口 只查询知识库,用户前端快速搜索
+    app.post("/api/chat/knowledge_base_chat_custom",
+             tags=["Chat"],
+             summary="与知识库对话")(knowledge_base_chat_only)
 
     app.post("/chat/search_engine_chat",
              tags=["Chat"],
