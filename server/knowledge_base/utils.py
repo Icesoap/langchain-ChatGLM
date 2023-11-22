@@ -336,9 +336,9 @@ class KnowledgeFile:
         if zh_title_enhance:
             docs = func_zh_title_enhance(docs)
         self.splited_docs = docs
-        # TODO 自己添加
-        for doc in docs:
-            doc.metadata["file_id"] = 1
+        # TODO 自己添加 可以向metadata中添加东西
+        # for doc in docs:
+        #     doc.metadata["file_id"] = 1
         return self.splited_docs
 
     def file2text(
@@ -384,7 +384,7 @@ class KnowledgeFile:
                                        f'卡片信息:\n{card_info}\n' \
                                        f'工作流状态:{work_flow_status}\n' \
                                        f'{tmp_content}'
-            print(docs[0].page_content)
+            # print(docs[0].page_content)
             self.splited_docs = self.docs2texts(docs=docs,
                                                 zh_title_enhance=zh_title_enhance,
                                                 refresh=refresh,

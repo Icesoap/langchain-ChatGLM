@@ -70,12 +70,12 @@ def create_app():
     # 通过prompt可以设置 1查询知识库和LLM 2.只查询知识库
     app.post("/api/chat/knowledge_base_chat_custom",
              tags=["Chat"],
-             summary="与知识库对话")(knowledge_base_chat_custom)
+             summary="与知识库对话,自己改造,主要查询PDM")(knowledge_base_chat_custom)
 
     # 自己添加的方法-与知识库对话接口 只查询知识库,用户前端快速搜索
-    app.post("/api/chat/knowledge_base_chat_custom",
+    app.post("/api/chat/knowledge_base_chat_only",
              tags=["Chat"],
-             summary="与知识库对话")(knowledge_base_chat_only)
+             summary="只查询知识库")(knowledge_base_chat_only)
 
     app.post("/chat/search_engine_chat",
              tags=["Chat"],

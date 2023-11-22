@@ -15,7 +15,7 @@ from pydantic import Json
 import json
 from server.knowledge_base.kb_service.base import KBServiceFactory
 from server.db.repository.knowledge_file_repository import get_file_detail
-from typing import List, Dict
+from typing import List, Dict, Optional
 from langchain.docstore.document import Document
 
 
@@ -45,10 +45,9 @@ def search_docs_custom(query: str = Body(..., description="用户输入", exampl
                        knowledge_base_name: str = Body(..., description="知识库名称", examples=["samples"]),
                        top_k: int = Body(VECTOR_SEARCH_TOP_K, description="匹配向量数"),
                        score_threshold: float = Body(SCORE_THRESHOLD,
-                                                     description="知识库匹配相关度阈值，取值范围在0-1之间，SCORE越小，相关度越高，取到1相当于不筛选，建议设置在0.5左右",
-                                                     ge=0, le=1),
-                       embedding_filter: dict = Body(None, description="用户输入",
-                                                     examples=[{'permission_users': '用户1'}]),
+                                                     description="知识库匹配相关度阈值，取值范围在0-5之间，SCORE越小,距离越近，相关度越高，取到5相当于不筛选，建议设置在0.5左右",
+                                                     ge=0, le=5),
+                       embedding_filter: Optional[dict] = None
                        ) -> List[DocumentWithScore]:
     kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
     if kb is None:
@@ -162,7 +161,7 @@ def upload_docs_custom_from_api(archiveName: str = Form(None, description="档�
           f",filePath:{filePath},cardInfo:{cardInfo},"
           f"permissionUsers:{permissionUsers},workFlowStatus:{workFlowStatus}")
 
-    # print(f"测试文件名:{fileBytes.filename}")
+    print(f"测试文件名:{fileBytes.filename}")
     allow_empty_kb = True
 
     permissionUsersParamList = None
