@@ -373,7 +373,8 @@ class KnowledgeFile:
         if self.splited_docs is None or refresh:
             docs = self.file2docs()
 
-            if docs and docs[0]:
+            # 如果有文档 并且是从pdm传过来的 则向文件中增加信息
+            if docs and docs[0] and kwargs["upload_from"] == 0:
                 file_name = kwargs["file_name"]
                 file_path = kwargs["file_path"]
                 card_info = kwargs["card_info"]
@@ -384,13 +385,26 @@ class KnowledgeFile:
                                        f'卡片信息:\n{card_info}\n' \
                                        f'工作流状态:{work_flow_status}\n' \
                                        f'{tmp_content}'
+
+                # 增加pdm中文件路径信息
+                docs[0].metadata["work_flow_status"] = kwargs["work_flow_status"]
+                docs[0].metadata["pdm_path"] = kwargs["pdm_path"]
+                docs[0].metadata["plm_pdm_path"] = kwargs["plm_pdm_path"]
+                docs[0].metadata["process"] = kwargs["process"]
+                docs[0].metadata["rev"] = kwargs["rev"]
+                docs[0].metadata["revised_edition"] = kwargs["revised_edition"]
+                docs[0].metadata["work_flow"] = kwargs["work_flow"]
+                docs[0].metadata["update_date"] = kwargs["update_date"]
+                docs[0].metadata["create_user"] = kwargs["create_user"]
+                docs[0].metadata["create_date"] = kwargs["create_date"]
             # print(docs[0].page_content)
             self.splited_docs = self.docs2texts(docs=docs,
                                                 zh_title_enhance=zh_title_enhance,
                                                 refresh=refresh,
                                                 chunk_size=chunk_size,
                                                 chunk_overlap=chunk_overlap,
-                                                text_splitter=text_splitter)
+                                                text_splitter=text_splitter
+                                                )
         return self.splited_docs
 
     def file_exist(self):
@@ -493,8 +507,18 @@ def files2docs_in_thread_custom(
             kwargs_tmp["zh_title_enhance"] = zh_title_enhance
             kwargs_tmp["file_name"] = kwargs['file_name']
             kwargs_tmp["file_path"] = kwargs['file_path']
+            kwargs_tmp["pdm_path"] = kwargs['pdm_path']
+            kwargs_tmp["plm_pdm_path"] = kwargs['plm_pdm_path']
             kwargs_tmp["card_info"] = kwargs['card_info']
             kwargs_tmp["work_flow_status"] = kwargs['work_flow_status']
+            kwargs_tmp["upload_from"] = kwargs['upload_from']
+            kwargs_tmp["process"] = kwargs["process"]
+            kwargs_tmp["rev"] = kwargs["rev"]
+            kwargs_tmp["revised_edition"] = kwargs["revised_edition"]
+            kwargs_tmp["work_flow"] = kwargs["work_flow"]
+            kwargs_tmp["update_date"] = kwargs["update_date"]
+            kwargs_tmp["create_user"] = kwargs["create_user"]
+            kwargs_tmp["create_date"] = kwargs["create_date"]
             kwargs_list.append(kwargs_tmp)
         except Exception as e:
             yield False, (kb_name, filename, str(e))

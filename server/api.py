@@ -13,7 +13,7 @@ import argparse
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import RedirectResponse
-from server.chat import (chat, knowledge_base_chat, knowledge_base_chat_custom,knowledge_base_chat_only, openai_chat,
+from server.chat import (chat, chat_custom,knowledge_base_chat, knowledge_base_chat_custom,knowledge_base_chat_only, openai_chat,
                          search_engine_chat, agent_chat)
 from server.knowledge_base.kb_api import list_kbs, create_kb, delete_kb
 from server.knowledge_base.kb_doc_api import (list_files, upload_docs, delete_docs,
@@ -62,6 +62,10 @@ def create_app():
     app.post("/chat/chat",
              tags=["Chat"],
              summary="与llm模型对话(通过LLMChain)")(chat)
+
+    app.post("/api/chat/chat_custom",
+             tags=["Chat"],
+             summary="与llm模型对话(通过LLMChain)_自定义方法")(chat_custom)
 
     app.post("/chat/knowledge_base_chat",
              tags=["Chat"],

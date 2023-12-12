@@ -1,20 +1,22 @@
-from fastapi import Body, Request
-from fastapi.responses import StreamingResponse
-from configs import (LLM_MODEL, VECTOR_SEARCH_TOP_K, SCORE_THRESHOLD, TEMPERATURE)
-from server.utils import wrap_done, get_ChatOpenAI
-from server.utils import BaseResponse, get_prompt_template, BaseResponseSSE
-from langchain.chains import LLMChain
-from langchain.callbacks import AsyncIteratorCallbackHandler
-from typing import AsyncIterable, List, Optional
 import asyncio
-from langchain.prompts.chat import ChatPromptTemplate
-from server.chat.utils import History
-from server.knowledge_base.kb_service.base import KBService, KBServiceFactory
 import json
 import os
+from typing import AsyncIterable, List, Optional
 from urllib.parse import urlencode
+
+from fastapi import Body
+from fastapi.responses import StreamingResponse
+from langchain.callbacks import AsyncIteratorCallbackHandler
+from langchain.chains import LLMChain
+from langchain.prompts.chat import ChatPromptTemplate
+from sse_starlette import EventSourceResponse
+
+from configs import (LLM_MODEL, VECTOR_SEARCH_TOP_K, SCORE_THRESHOLD, TEMPERATURE)
+from server.chat.utils import History
 from server.knowledge_base.kb_doc_api import search_docs, search_docs_custom
-from sse_starlette import EventSourceResponse, ServerSentEvent
+from server.knowledge_base.kb_service.base import KBServiceFactory
+from server.utils import BaseResponse, get_prompt_template, BaseResponseSSE
+from server.utils import wrap_done, get_ChatOpenAI
 
 
 # 自己添加的方法-与知识库对话接口 只查询知识库,用户前端快速搜索
@@ -79,8 +81,8 @@ async def knowledge_base_chat_custom(query: str = Body(..., description="用户�
                                                            examples=["用户1"]),
                                      top_k: int = Body(VECTOR_SEARCH_TOP_K, description="匹配向量数"),
                                      score_threshold: float = Body(SCORE_THRESHOLD,
-                                                                   description="知识库匹配相关度阈值，取值范围在0-1之间，SCORE越小，相关度越低，取到0相当于无门槛，建议设置在0.5左右",
-                                                                   ge=0, le=2),
+                                                                   description="知识库匹配相关度阈值，取值范围在0-5之间，SCORE越小，相关度越高，取到5相当于无门槛，建议设置在0.5左右",
+                                                                   ge=0, le=5),
                                      history: List[History] = Body([],
                                                                    description="历史对话",
                                                                    examples=[[
@@ -89,22 +91,27 @@ async def knowledge_base_chat_custom(query: str = Body(..., description="用户�
                                                                        {"role": "assistant",
                                                                         "content": "虎头虎脑"}]]
                                                                    ),
-                                     stream: bool = Body(False, description="流式输出"),
+                                     stream: bool = Body(True, description="流式输出"),
                                      model_name: str = Body(LLM_MODEL, description="LLM 模型名称。"),
                                      temperature: float = Body(TEMPERATURE, description="LLM 采样温度", ge=0.0, le=1.0),
                                      max_tokens: int = Body(None,
                                                             description="限制LLM生成Token数量，默认None代表模型最大值"),
-                                     prompt_name: str = Body("default",
+                                     prompt_name: str = Body("knowledge_first",
                                                              description="使用的prompt模板名称(在configs/prompt_config.py中配置)"),
+                                     query_to: int = Body(0,
+                                                          description="表示要从哪里查询,0:pdm;1:智能客服")
                                      ):
     print(
         f"query:{query},knowledge_base_name:{knowledge_base_name},user_name:{user_name},score_threshold:{score_threshold}"
-        f",history:{history},stream:{stream},model_name:{model_name},temperature:{temperature},prompt_name:{prompt_name}")
+        f",history:{history},stream:{stream},model_name:{model_name},temperature:{temperature}"
+        f",prompt_name:{prompt_name},query_to:{query_to}")
 
     # 设置字段默认值
-    prompt_name = "knowledge_first"
-    score_threshold = 0
-    temperature = 0.7
+    # prompt_name = "knowledge_first"
+    if prompt_name == "knowledge_first":
+        score_threshold = 1.5
+
+    # temperature = 0.7
 
     kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
     if kb is None:
@@ -129,7 +136,7 @@ async def knowledge_base_chat_custom(query: str = Body(..., description="用户�
             callbacks=[callback],
         )
         embedding_filter = None
-        if user_name and user_name != -1:
+        if user_name and user_name != '-1':
             embedding_filter = {"permission_users": user_name}
         # 搜索知识库
         docs = search_docs_custom(query, knowledge_base_name, top_k, score_threshold, embedding_filter)
@@ -153,6 +160,12 @@ async def knowledge_base_chat_custom(query: str = Body(..., description="用户�
             filename = os.path.split(doc.metadata["source"])[-1]
             parameters = urlencode({"knowledge_base_name": knowledge_base_name, "file_name": filename})
             url = f"/knowledge_base/download_doc?" + parameters
+            if query_to == 0 and 'pdm_path' in doc.metadata.keys():
+                url = doc.metadata["pdm_path"]
+                # 自己添加的属性 增加plm_pdm_path
+                if 'plm_pdm_path' in doc.metadata.keys():
+                    url = url + '```' + doc.metadata["plm_pdm_path"]
+
             text = f"""出处 [{inum + 1}] [{filename}]({url}) \n\n{doc.page_content}\n\n"""
             source_documents.append(text)
         if stream:

@@ -150,12 +150,22 @@ def upload_docs_custom_from_api(archiveName: str = Form(None, description="档�
                                 fileId: int = Form(None, description="文件Id")
                                 , fileName: str = Form(None, description="文件名称")
                                 , filePath: str = Form(None, description="文件路径")
+                                , pdmPath: str = Form(None, description="pdm中的路径")
+                                , plmPdmPath: str = Form(None, description="plm中pdm的路径")
                                 , cardInfo: str = Form(None, description="卡片信息,json格式",
                                                        example='{"长度":12,"宽度":15}')
                                 , permissionUsers: str = Form(None, description="有权限的用户,数组格式",
                                                               example='["用户1","用户2"]')
                                 , workFlowStatus: str = Form(None, description="pdm文件流程状态")
                                 , fileBytes: UploadFile = File(None, description="上传文件")
+                                , uploadFrom: int = Form(0, description="从哪上传的,默认0,0:pdm;1:智能客服")
+                                , process: str = Form(None, description="进度")
+                                , rev: str = Form(None, description="版次")
+                                , revisedEdition: str = Form(None, description="修订版")
+                                , workFlow: str = Form(None, description="工作流文字介绍")
+                                , updateDate: str = Form(None, description="更新日期")
+                                , createUser: str = Form(None, description="创建人")
+                                , createDate: str = Form(None, description="创建时间")
                                 ):
     print(f"测试,archiveName:{archiveName},文件id:{fileId},文件名称:{fileName}"
           f",filePath:{filePath},cardInfo:{cardInfo},"
@@ -184,10 +194,21 @@ def upload_docs_custom_from_api(archiveName: str = Form(None, description="档�
     # 调用chatchat的上传,并加入额外的信息
     base_response = upload_docs_custom(file_list, archiveName, docs={}, archive_name=archiveName, file_id=fileId,
                                        file_name=fileName,
-                                       file_path=filePath
+                                       file_path=filePath,
+                                       pdm_path=pdmPath
+                                       , plm_pdm_path=plmPdmPath
                                        , card_info=cardInfo,
                                        permission_users=permissionUsersParamList,
-                                       work_flow_status=workFlowStatus)
+                                       work_flow_status=workFlowStatus
+                                       , upload_from=uploadFrom
+                                       , process=process
+                                       , rev=rev
+                                       , revised_edition=revisedEdition
+                                       , work_flow=workFlow
+                                       , update_date=updateDate
+                                       , create_user=createUser
+                                       , create_date=createDate
+                                       )
 
     # return BaseResponse(code=200, msg="上传成功")
     return base_response
