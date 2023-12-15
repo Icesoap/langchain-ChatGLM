@@ -160,16 +160,18 @@ async def knowledge_base_chat_custom(query: str = Body(..., description="用户�
             filename = os.path.split(doc.metadata["source"])[-1]
             parameters = urlencode({"knowledge_base_name": knowledge_base_name, "file_name": filename})
             url = f"/knowledge_base/download_doc?" + parameters
-            if query_to == 0 and 'pdm_path' in doc.metadata.keys():
-                url = doc.metadata["pdm_path"]
+            if query_to == 0:
+                if 'pdm_path' in doc.metadata.keys():
+                    url = doc.metadata["pdm_path"]
+                url = url + '```'
                 # 自己添加的属性 增加plm_pdm_path
                 if 'plm_pdm_path' in doc.metadata.keys():
-                    url = url + '```' + doc.metadata["plm_pdm_path"]
+                    url = url + doc.metadata["plm_pdm_path"]
 
             text = f"""出处 [{inum + 1}] [{filename}]({url}) \n\n{doc.page_content}\n\n"""
             source_documents.append(text)
-        if stream:
             print("begin")
+        if stream:
             async for token in callback.aiter():
                 # Use server-sent-events to stream the response
                 # yield f'data:{json.dumps({"answer": token}, ensure_ascii=False)}'

@@ -65,12 +65,14 @@ class PGKBService(KBService):
                                        self.pg_vector.similarity_search_with_score(query, top_k))
 
     # 自己添加的方法- 执行查询知识库
-    def do_search_custom(self, query: str, top_k: int, score_threshold: float, embeddings: Embeddings, embedding_filter: Optional[dict] = None):
+    def do_search_custom(self, query: str, top_k: int, score_threshold: float, embeddings: Embeddings,
+                         embedding_filter: Optional[dict] = None):
         self._load_pg_vector(embeddings=embeddings)
 
         # filter_my = {"permission_users": "a"}
         return score_threshold_process(score_threshold, top_k,
-                                       self.pg_vector.similarity_search_with_score_custom(query, top_k, embedding_filter))
+                                       self.pg_vector.similarity_search_with_score_custom(query, top_k,
+                                                                                          embedding_filter))
 
     def do_add_doc(self, docs: List[Document], **kwargs) -> List[Dict]:
         ids = self.pg_vector.add_documents(docs)

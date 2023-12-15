@@ -64,6 +64,15 @@ class FaissKBService(KBService):
             docs = vs.similarity_search_with_score(query, k=top_k, score_threshold=score_threshold)
         return docs
 
+    def do_search_custom(self,
+                         query: str,
+                         top_k: int,
+                         score_threshold: float,
+                         embeddings: Embeddings,
+                         embedding_filter: Optional[dict] = None
+                         ) -> List[Document]:
+        pass
+
     def do_add_doc(self,
                    docs: List[Document],
                    **kwargs,
@@ -75,6 +84,11 @@ class FaissKBService(KBService):
         doc_infos = [{"id": id, "metadata": doc.metadata} for id, doc in zip(ids, docs)]
         torch_gc()
         return doc_infos
+
+    def do_add_doc_custom(self,
+                          docs: List[Document],
+                          ) -> List[Dict]:
+        pass
 
     def do_delete_doc(self,
                       kb_file: KnowledgeFile,
