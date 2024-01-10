@@ -176,6 +176,7 @@ def upload_docs_custom_from_api(archiveName: str = Form(None, description="æ¡£æ¡
 
     permissionUsersParamList = None
     if permissionUsers:
+        permissionUsers = permissionUsers.lower()
         permissionUsersParamList = permissionUsers.split(",")
         # permissionUsersParamList = json.loads(permissionUsers)
 
