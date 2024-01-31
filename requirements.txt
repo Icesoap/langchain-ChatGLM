@@ -2,10 +2,11 @@ langchain>=0.0.319
 langchain-experimental>=0.0.30
 fschat[model_worker]==0.2.31
 xformers>=0.0.22.post4
-openai>=0.28.1
+#openai>=0.28.1
+openai==0.28.1
 sentence_transformers
 #transformers>=4.34 版本过高会报错 AttributeError: 'ChatGLMTokenizer' object has no attribute 'tokenizer'
-transformers==4.33
+transformers==4.33.2
 torch>=2.0.1 # 推荐2.1 x1本地版本2.0.1
 torchvision
 torchaudio
@@ -55,3 +56,4 @@ tiktoken
 einops
 scipy
 transformers_stream_generator==0.0.4
+sse_starlette
