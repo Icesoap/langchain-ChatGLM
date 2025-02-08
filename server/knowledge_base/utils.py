@@ -397,6 +397,9 @@ class KnowledgeFile:
                 docs[0].metadata["update_date"] = kwargs["update_date"]
                 docs[0].metadata["create_user"] = kwargs["create_user"]
                 docs[0].metadata["create_date"] = kwargs["create_date"]
+            # 如果有文档 并且是从会员知识库传过来的 则向文件中增加信息
+            if docs and docs[0] and kwargs["upload_from"] == 1:
+                docs[0].metadata["member_repository_url"] = kwargs["member_repository_url"]
             # print(docs[0].page_content)
             self.splited_docs = self.docs2texts(docs=docs,
                                                 zh_title_enhance=zh_title_enhance,
@@ -509,6 +512,7 @@ def files2docs_in_thread_custom(
             kwargs_tmp["file_path"] = kwargs['file_path']
             kwargs_tmp["pdm_path"] = kwargs['pdm_path']
             kwargs_tmp["plm_pdm_path"] = kwargs['plm_pdm_path']
+            kwargs_tmp["member_repository_url"] = kwargs['member_repository_url']
             kwargs_tmp["card_info"] = kwargs['card_info']
             kwargs_tmp["work_flow_status"] = kwargs['work_flow_status']
             kwargs_tmp["upload_from"] = kwargs['upload_from']

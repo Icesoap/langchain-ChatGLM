@@ -163,10 +163,13 @@ async def knowledge_base_chat_custom(query: str = Body(..., description="用户�
             if query_to == 0:
                 if 'pdm_path' in doc.metadata.keys():
                     url = doc.metadata["pdm_path"]
-                url = url + '```'
-                # 自己添加的属性 增加plm_pdm_path
-                if 'plm_pdm_path' in doc.metadata.keys():
-                    url = url + doc.metadata["plm_pdm_path"]
+                if url is not None:
+                    url = url + '```'
+                    # 自己添加的属性 增加plm_pdm_path
+                    if 'plm_pdm_path' in doc.metadata.keys():
+                        url = url + doc.metadata["plm_pdm_path"]
+            elif query_to == 1:
+                url = doc.metadata["member_repository_url"]
 
             text = f"""出处 [{inum + 1}] [{filename}]({url}) \n\n{doc.page_content}\n\n"""
             source_documents.append(text)

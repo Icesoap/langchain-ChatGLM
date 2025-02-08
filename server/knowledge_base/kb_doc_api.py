@@ -152,6 +152,7 @@ def upload_docs_custom_from_api(archiveName: str = Form(None, description="档�
                                 , filePath: str = Form(None, description="文件路径")
                                 , pdmPath: str = Form(None, description="pdm中的路径")
                                 , plmPdmPath: str = Form(None, description="plm中pdm的路径")
+                                , memberRepositoryUrl: str = Form(None, description="会员知识库Url,用于跳转会员系统")
                                 , cardInfo: str = Form(None, description="卡片信息,json格式",
                                                        example='{"长度":12,"宽度":15}')
                                 , permissionUsers: str = Form(None, description="有权限的用户,数组格式",
@@ -198,6 +199,7 @@ def upload_docs_custom_from_api(archiveName: str = Form(None, description="档�
                                        file_path=filePath,
                                        pdm_path=pdmPath
                                        , plm_pdm_path=plmPdmPath
+                                       , member_repository_url=memberRepositoryUrl
                                        , card_info=cardInfo,
                                        permission_users=permissionUsersParamList,
                                        work_flow_status=workFlowStatus
