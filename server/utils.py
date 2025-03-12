@@ -12,6 +12,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from langchain.chat_models import ChatOpenAI, AzureChatOpenAI, ChatAnthropic
 import httpx
 from typing import Literal, Optional, Callable, Generator, Dict, Any, Awaitable, Union
+from zhipuai import ZhipuAI
 
 thread_pool = ThreadPoolExecutor(os.cpu_count())
 
@@ -84,6 +85,13 @@ def get_ChatOpenAI(
     else:
         ## 非Langchain原生支持的模型，走Fschat封装
         config = get_model_worker_config(model_name)
+        # if 'glm-4-plus' in model_name:
+        #     model = ZhipuAI(
+        #         api_key=config.get("api_key", "EMPTY"),
+        #         base_url=config.get("api_base_url", fschat_openai_api_address()),
+        #     )
+        # else:
+
         model = ChatOpenAI(
             streaming=streaming,
             verbose=verbose,
