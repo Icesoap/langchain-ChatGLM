@@ -119,6 +119,7 @@ class KBService(ABC):
         if docs:
             custom_docs = True
             for doc in docs:
+                #添加doc.metadata['source']的地方
                 doc.metadata.setdefault("source", kb_file.filepath)
         else:
             docs = kb_file.file2text()

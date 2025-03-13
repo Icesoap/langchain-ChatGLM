@@ -80,7 +80,7 @@ class PGKBService(KBService):
         return doc_infos
 
     # '''
-    #     自己添加的方法-执行添加文档到向量库
+    #     自己添加的方法-执行添加文档到向量库-加入metadata
     # '''
     def do_add_doc_custom(self, docs: List[Document], **kwargs) -> List[Dict]:
         ids = self.pg_vector.add_documents_custom(docs, **kwargs)
