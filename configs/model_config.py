@@ -18,7 +18,8 @@ MODEL_PATH = {
         "ernie-tiny": "nghuyong/ernie-3.0-nano-zh",
         "ernie-base": "nghuyong/ernie-3.0-base-zh",
         "text2vec-base": "shibing624/text2vec-base-chinese",
-        "text2vec": "text2vec-large-chinese",
+        # "text2vec": "text2vec-large-chinese",
+        "text2vec-large-chinese": "E:\\Development\\ChatGLM\\langchain-chatglm2-custom-lib\\text2vec-large-chinese",
         # "text2vec": "GanymedeNil/text2vec-large-chinese",
         "text2vec-paraphrase": "shibing624/text2vec-base-chinese-paraphrase",
         "text2vec-sentence": "shibing624/text2vec-base-chinese-sentence",
@@ -26,8 +27,11 @@ MODEL_PATH = {
         "text2vec-bge-large-chinese": "shibing624/text2vec-bge-large-chinese",
         "m3e-small": "moka-ai/m3e-small",
         # "m3e-base": "moka-ai/m3e-base",
-        "m3e-base": "m3e-base",
+        # "m3e-base": "E:\\Development\\ChatGLM\\langchain-chatglm2-custom-lib\\m3e-base",
+        # "m3e-base": "m3e-base",
+        "m3e-base": "E:\\Development\\ChatGLM\\langchain-chatglm2-custom-lib\\m3e-base",
         "m3e-large": "moka-ai/m3e-large",
+        "bge-m3": "",
         "bge-small-zh": "BAAI/bge-small-zh",
         "bge-base-zh": "BAAI/bge-base-zh",
         "bge-large-zh": "BAAI/bge-large-zh",
@@ -96,6 +100,7 @@ MODEL_PATH = {
 # 选用的 Embedding 名称
 # EMBEDDING_MODEL = "text2vec"
 EMBEDDING_MODEL = "m3e-base"
+# EMBEDDING_MODEL = "text2vec-large-chinese"
 # EMBEDDING_MODEL = "m3e-base" # 可以尝试最新的嵌入式sota模型：bge-large-zh-v1.5
 
 
@@ -178,7 +183,7 @@ LANGCHAIN_LLM_MODEL = {
 }
 ONLINE_LLM_MODEL = {
 
-    #修改为动态获取大模型
+    # 修改为动态获取大模型
     "deepseek-coder-v2:16b": {
         "model_name": "deepseek-coder-v2:16b",
         "api_base_url": "https://u192916-b442-a0bd23d2.westx.seetacloud.com:8443/ds/v1",
