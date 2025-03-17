@@ -53,10 +53,26 @@ async def knowledge_base_chat_only(query: str = Body(..., description="用户输
     # prompt_name = "knowledge_first"
     score_threshold = 5
     # temperature = 0.7
+    if knowledge_base_name is None:
+        return BaseResponse(code=500, msg="请输入知识库名称")
 
-    kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
-    if kb is None:
-        return BaseResponse(code=404, msg=f"未找到知识库 {knowledge_base_name}")
+    is_all_data_base_not_found = True
+    if ',' in knowledge_base_name:
+        print(knowledge_base_name)
+        knowledge_base_name_arr = knowledge_base_name.split(",")
+        for knowledge_base_name_loop in knowledge_base_name_arr:
+            kb = KBServiceFactory.get_service_by_name(knowledge_base_name_loop)
+            if kb is not None:
+                is_all_data_base_not_found = False
+
+        if is_all_data_base_not_found:
+            return BaseResponse(code=404, msg=f"未找到知识库 {knowledge_base_name}")
+
+    else:
+        kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
+        if kb is None:
+            return BaseResponse(code=404, msg=f"未找到知识库 {knowledge_base_name}")
+
         # 使用自己的SSE报错类
         # base_response_sse = BaseResponseSSE()
         # return EventSourceResponse(base_response_sse.stream_err(msg=f"未找到知识库:{knowledge_base_name}"))

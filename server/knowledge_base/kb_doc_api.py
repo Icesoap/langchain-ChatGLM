@@ -49,12 +49,32 @@ def search_docs_custom(query: str = Body(..., description="用户输入", exampl
                                                      ge=0, le=5),
                        embedding_filter: Optional[dict] = None
                        ) -> List[DocumentWithScore]:
-    kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
-    if kb is None:
-        return []
-    # 查询向量库
-    docs = kb.search_docs_custom(query, top_k, score_threshold, embedding_filter)
-    data = [DocumentWithScore(**x[0].dict(), score=x[1]) for x in docs]
+    docs_list = []
+
+    if ',' in knowledge_base_name:
+        print(knowledge_base_name)
+        knowledge_base_name_arr = knowledge_base_name.split(",")
+        for knowledge_base_name_loop in knowledge_base_name_arr:
+            kb = KBServiceFactory.get_service_by_name(knowledge_base_name_loop)
+            if kb is not None:
+                # 查询向量库
+                docs = kb.search_docs_custom(query, top_k, score_threshold, embedding_filter)
+                docs_list += docs
+    else:
+        kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
+        if kb is not None:
+            # 查询向量库
+            docs = kb.search_docs_custom(query, top_k, score_threshold, embedding_filter)
+            docs_list += docs
+
+    # kb = KBServiceFactory.get_service_by_name(knowledge_base_name)
+    # if kb is None:
+    #     return []
+    # # 查询向量库
+    # docs = kb.search_docs_custom(query, top_k, score_threshold, embedding_filter)
+
+    # data = [DocumentWithScore(**x[0].dict(), score=x[1]) for x in docs]
+    data = [DocumentWithScore(**x[0].dict(), score=x[1]) for x in docs_list]
 
     return data
 

@@ -111,6 +111,7 @@ class CachePool:
 
 
 class EmbeddingsPool(CachePool):
+    # 从缓存中加载embedding模型
     def load_embeddings(self, model: str, device: str) -> Embeddings:
         self.atomic.acquire()
         model = model or EMBEDDING_MODEL

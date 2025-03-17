@@ -16,14 +16,14 @@ DEFAULT_BIND_HOST = "0.0.0.0" if sys.platform != "win32" else "0.0.0.0"
 # webui.py server
 WEBUI_SERVER = {
     "host": DEFAULT_BIND_HOST,
-    "port": 8501,
+    "port": 8502,
 }
 
 # api.py server
 API_SERVER = {
     "host": DEFAULT_BIND_HOST,
-    "port": 7862,
-    # "port": 7863,
+    # "port": 7862,
+    "port": 7866,
 }
 
 # fastchat openai_api server
@@ -106,7 +106,7 @@ FSCHAT_MODEL_WORKERS = {
     #     "port": 21001,
     # },
     "chatglm2-6b-int4": {  # 请为每个要运行的在线API设置不同的端口
-        "port": 21001,
+        "port": 21002,
     },
     # "minimax-api": {
     #     "port": 21002,
